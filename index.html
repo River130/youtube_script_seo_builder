@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>YouTube＆ショート台本・概要欄ビルダー | River130 Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-main: #0b1120;
+      --bg-card: #131c31;
+      --bg-input: #0f172a;
+      --border-color: #263554;
+      --accent-cyan: #38bdf8;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background-color: var(--bg-main);
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      margin: 0;
+      padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+      line-height: 1.6;
+    }
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+    .input-field {
+      width: 100%;
+      background-color: var(--bg-input);
+      border: 1px solid #334155;
+      color: #f8fafc;
+      border-radius: 10px;
+      padding: 0.7rem 0.85rem;
+      font-size: 0.95rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+    }
+    .output-box {
+      width: 100%;
+      background-color: #080d1a;
+      border: 1px solid #293856;
+      color: #e2e8f0;
+      border-radius: 10px;
+      padding: 0.85rem;
+      font-size: 0.88rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Noto Sans JP", monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.65;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: white;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 0.65rem 1rem;
+      transition: transform 0.1s, opacity 0.2s;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+    .btn-copy {
+      background-color: #1e293b;
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+      font-weight: 700;
+      border-radius: 8px;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+    .btn-copy:hover {
+      background-color: rgba(56, 189, 248, 0.15);
+    }
+    .btn-copy:active {
+      transform: scale(0.96);
+    }
+    .preset-chip {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      border-radius: 9999px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .preset-chip:hover, .preset-chip.active {
+      background-color: rgba(56, 189, 248, 0.18);
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+    .tab-btn {
+      padding: 0.6rem 0.9rem;
+      font-size: 0.84rem;
+      font-weight: 700;
+      border-radius: 10px;
+      color: #94a3b8;
+      background-color: #0f172a;
+      border: 1px solid #1e293b;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(37, 99, 235, 0.25));
+      border-color: #38bdf8;
+      color: #ffffff;
+    }
+    /* Toast */
+    #toast {
+      position: fixed;
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(-120%);
+      background: linear-gradient(135deg, #059669, #10b981);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 9999px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+    /* Floating Top Button */
+    #scrollTopBtn {
+      position: fixed;
+      right: 1rem;
+      bottom: calc(1.25rem + env(safe-area-inset-bottom));
+      width: 46px;
+      height: 46px;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      cursor: pointer;
+      z-index: 900;
+    }
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b1120;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast Notification -->
+  <div id="toast">✅ クリップボードにコピーしました！</div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-40 bg-[#0b1120]/95 backdrop-blur border-b border-slate-800 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-lg shadow-lg">
+          🎬
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-white leading-tight">
+            YouTube＆ショート台本・概要欄ビルダー
+          </h1>
+          <p class="text-[11px] text-slate-400">検索SEO冒頭300文字・長尺台本・ショート3本切り抜き一括生成</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openReleaseModal()" class="text-xs font-bold px-2.5 py-1.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/40 hover:bg-sky-500/25 transition">
+          🆕 v1.0
+        </button>
+        <button onclick="saveCurrentProject()" class="btn-primary text-xs sm:text-sm py-1.5 px-3">
+          💾 保存
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-5 pt-4">
+
+    <!-- Quick Preset Bar -->
+    <section class="card p-3.5 mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <span class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
+          ⚡ 企画タイプ別プリセット（ワンタップで雛形読込）
+        </span>
+        <button onclick="clearAllFields()" class="text-xs text-slate-400 hover:text-rose-400 underline">
+          🗑️ 入力をクリア
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="applyPreset('app_dev')" id="preset-app_dev" class="preset-chip active">
+          📱 自作アプリ公開（開発裏話＋実演型）
+        </button>
+        <button onclick="applyPreset('music_tool')" id="preset-music_tool" class="preset-chip">
+          🎸 音楽・作曲・楽器アプリ実演型
+        </button>
+        <button onclick="applyPreset('delivery_dx')" id="preset-delivery_dx" class="preset-chip">
+          🚚 軽貨物・現場DX効率化ノウハウ型
+        </button>
+        <button onclick="applyPreset('bgm_loop')" id="preset-bgm_loop" class="preset-chip">
+          🌙 作業用BGM・朗読ループ型（引き算設計）
+        </button>
+      </div>
+    </section>
+
+    <!-- Two Column Grid (Desktop) / Stacked (Mobile) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+      <!-- LEFT COLUMN: INPUT FORM (5 cols) -->
+      <section id="input-section" class="lg:col-span-5 card p-4 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+          <h2 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+            📝 1. 動画の設計パラメータ入力
+          </h2>
+          <span class="text-[11px] text-emerald-400 font-semibold">● リアルタイム自動生成中</span>
+        </div>
+
+        <!-- Theme / App Name -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">
+            動画のテーマ・紹介するアプリ名 <span class="text-rose-400">*</span>
+          </label>
+          <input type="text" id="inTitleTopic" class="input-field" placeholder="例：インスタコード専用 作曲アシストスタジオ" oninput="generateAll()" />
+        </div>
+
+        <!-- Target Audience & Pain -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">
+            ターゲット視聴者 ＆ 解決する悩み（フック）
+          </label>
+          <textarea id="inPain" rows="2" class="input-field" placeholder="例：オリジナル曲を作りたいけど音楽理論が難しい、実機が手元にない外出先でもコード進行を試したい" oninput="generateAll()"></textarea>
+        </div>
+
+        <!-- Story / Key Feature -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">
+            開発裏話・一番のこだわりポイント（見どころ）
+          </label>
+          <textarea id="inStory" rows="3" class="input-field" placeholder="例：最初は普通のピアノ鍵盤アプリが出てきたが、全消しして1〜6の数字ボタンと縦6本の横長弦パッドに作り直した。登録不要・完全無料でブラウザだけで動く。" oninput="generateAll()"></textarea>
+        </div>
+
+        <!-- SEO Keywords -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-bold text-slate-300">
+              検索SEOキーワード（カンマ区切り・3〜6個）
+            </label>
+            <span id="kwMatchBadge" class="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+              冒頭300字カバー率: 100%
+            </span>
+          </div>
+          <input type="text" id="inKeywords" class="input-field" placeholder="例：インスタコード, 作曲, 個人開発, AI活用, 無料アプリ" oninput="generateAll()" />
+          <p class="text-[11px] text-slate-400 mt-1">※ここで設定した語句が概要欄の冒頭300文字・目次・ハッシュタグに自動配置されます。</p>
+        </div>
+
+        <!-- URLs -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">
+              🔗 公開アプリURL（GitHub Pages等）
+            </label>
+            <input type="url" id="inAppUrl" class="input-field text-xs" placeholder="https://ユーザー名.github.io/app/" oninput="generateAll()" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">
+              📘 解説note記事URL（任意）
+            </label>
+            <input type="url" id="inNoteUrl" class="input-field text-xs" placeholder="https://note.com/..." oninput="generateAll()" />
+          </div>
+        </div>
+
+        <!-- Channel & Options -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">
+              📺 チャンネル名・ブランド名
+            </label>
+            <input type="text" id="inChannel" class="input-field text-xs" value="River130" oninput="generateAll()" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">
+              ⏱️ 想定動画尺（タイムスタンプ用）
+            </label>
+            <select id="inDuration" class="input-field text-xs" onchange="generateAll()">
+              <option value="short_long">約3〜4分（テンポ重視・標準）</option>
+              <option value="mid_long">約5〜7分（じっくり開発＆実演）</option>
+              <option value="bgm_1h">約1時間（作業用BGM・辞書ループ）</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Compliance Toggle -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2">
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="chkDisclaimer" class="mt-1 accent-sky-500 w-4 h-4" checked onchange="generateAll()" />
+            <span class="text-xs text-slate-300">
+              <strong class="text-sky-300">法務防御・非公式ツール免責文</strong>を概要欄に自動挿入する（特定製品・サービス対応ツールの誤認防止用）
+            </span>
+          </label>
+          <div id="disclaimerTargetWrap" class="pl-6">
+            <input type="text" id="inTrademarkName" class="input-field text-xs py-1.5" placeholder="免責対象メーカー・サービス名（例：インスタコード株式会社様 / 各種配送会社様）" oninput="generateAll()" />
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap gap-2 pt-2">
+          <button onclick="saveCurrentProject()" class="btn-primary flex-1 text-sm">
+            💾 この企画をストック保存
+          </button>
+          <button onclick="exportMarkdownFile()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-slate-700 transition cursor-pointer">
+            ⬇️ .md一括保存
+          </button>
+        </div>
+      </section>
+
+      <!-- RIGHT COLUMN: GENERATED OUTPUTS (7 cols) -->
+      <section class="lg:col-span-7 space-y-4">
+
+        <!-- Output Navigation Tabs -->
+        <div class="card p-2.5 sticky top-[61px] z-30 bg-[#131c31]/95 backdrop-blur">
+          <div class="flex overflow-x-auto gap-1.5 pb-0.5">
+            <button onclick="switchTab('seo')" id="tab-seo" class="tab-btn active">
+              🎯 タイトル＆SEO概要欄
+            </button>
+            <button onclick="switchTab('script')" id="tab-script" class="tab-btn">
+              🎙️ 長尺台本（Vids読上げ対応）
+            </button>
+            <button onclick="switchTab('shorts')" id="tab-shorts" class="tab-btn">
+              📱 ショート3本切り抜き量産
+            </button>
+            <button onclick="switchTab('history')" id="tab-history" class="tab-btn">
+              📂 保存済み企画 (<span id="savedCount">0</span>)
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 1: TITLE & SEO DESCRIPTION -->
+        <div id="panel-seo" class="space-y-4">
+          <!-- Title Candidates -->
+          <div class="card p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+                🏆 クリック率最大化：タイトル案（3パターン）
+              </h3>
+              <span class="text-[11px] text-slate-400">前半20文字に核心フックを配置</span>
+            </div>
+            <div class="space-y-2.5" id="titleList">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- SEO Description with 300-char meter -->
+          <div class="card p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <div>
+                <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+                  🔍 検索SEO支配：概要欄テキスト（タイムスタンプ完備）
+                </h3>
+                <p class="text-[11px] text-slate-400">YouTubeアルゴリズムが最重要視する「冒頭300文字」に検索語句を集中配置しています</p>
+              </div>
+              <button onclick="copyElementText('outDescription')" class="btn-copy">
+                📋 概要欄を全コピー
+              </button>
+            </div>
+
+            <!-- 300-char Visual Meter -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-2.5 mb-2.5">
+              <div class="flex items-center justify-between text-xs mb-1">
+                <span class="font-bold text-amber-400">⚡ 冒頭300文字（SEO最重点ゾーン）チェック</span>
+                <span id="introCharCount" class="font-mono font-bold text-emerald-400">0 / 300文字</span>
+              </div>
+              <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div id="introProgressBar" class="h-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-all duration-300" style="width: 85%;"></div>
+              </div>
+              <p id="introPreviewText" class="text-[11px] text-slate-400 mt-1.5 line-clamp-2"></p>
+            </div>
+
+            <div id="outDescription" class="output-box max-h-[380px] overflow-y-auto"></div>
+          </div>
+
+          <!-- Pinned Comment -->
+          <div class="card p-4">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+                  📌 コメント欄「固定コメント」案（UGC誘発＆URL誘導）
+                </h3>
+                <p class="text-[11px] text-slate-400">公開直後に投稿してピン留めすることで、アプリ遷移率とコメント率を引き上げます</p>
+              </div>
+              <button onclick="copyElementText('outPinnedComment')" class="btn-copy">
+                📋 固定コメントコピー
+              </button>
+            </div>
+            <div id="outPinnedComment" class="output-box"></div>
+          </div>
+        </div>
+
+        <!-- TAB 2: LONG VIDEO SCRIPT -->
+        <div id="panel-script" class="hidden space-y-4">
+          <div class="card p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+                  🎙️ 長尺動画 構成＆Google Vids読み上げ台本
+                </h3>
+                <p class="text-[11px] text-slate-400">AI音声が記号や英語を読み間違えないよう、ナレーションは自然な日本語表記に最適化済みです</p>
+              </div>
+              <button onclick="copyElementText('outLongScript')" class="btn-copy">
+                📋 台本を全コピー
+              </button>
+            </div>
+            <div id="outLongScript" class="output-box max-h-[580px] overflow-y-auto"></div>
+          </div>
+        </div>
+
+        <!-- TAB 3: SHORTS 3-PACK -->
+        <div id="panel-shorts" class="hidden space-y-4">
+          <div class="bg-sky-500/10 border border-sky-500/30 rounded-xl p-3.5 text-xs text-sky-200">
+            <strong>💡 ワンソース・マルチユース戦略（追加撮影ゼロ）：</strong><br />
+            長尺動画の画面録画をCanvaの「モバイル動画（1080×1920px・黒背景）」中央に配置し、上下の黒余白に以下のフックテロップを貼るだけで3本のYouTubeショートが量産できます。投稿時は必ず<strong>「関連動画」に長尺本編</strong>を設定してください！
+          </div>
+          <div id="shortsContainer" class="space-y-4">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- TAB 4: SAVED PROJECTS -->
+        <div id="panel-history" class="hidden space-y-4">
+          <div class="card p-4">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-extrabold text-white">📂 保存済みの動画企画・台本ストック</h3>
+              <span class="text-xs text-slate-400">端末内（LocalStorage）に自動保存</span>
+            </div>
+            <div id="savedListContainer" class="space-y-2.5">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="max-w-7xl mx-auto px-4 mt-10 pt-6 border-t border-slate-800/80 text-center text-xs text-slate-400 space-y-2">
+    <p class="font-semibold text-slate-300">YouTube＆ショート台本・概要欄ビルダー v1.0 | River130 経営本部</p>
+    <p>※入力データおよび保存ストックはお使いのブラウザ内（LocalStorage）にのみ保存され、外部サーバーへ送信されることはありません。</p>
+    <div class="pt-1">
+      <button onclick="openReleaseModal()" class="text-sky-400 hover:underline">
+        📋 アプリの更新履歴（リリースノート）を見る
+      </button>
+    </div>
+  </footer>
+
+  <!-- Scroll To Top Button -->
+  <button id="scrollTopBtn" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" aria-label="先頭へ戻る">
+    ⬆️
+  </button>
+
+  <!-- Release Notes Modal -->
+  <div id="releaseModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="closeReleaseModal(event)">
+    <div class="card max-w-lg w-full p-5 space-y-4 border-sky-500/40" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+          📋 更新履歴（リリースノート）
+        </h3>
+        <button onclick="closeReleaseModal()" class="text-slate-400 hover:text-white text-lg font-bold px-2">✕</button>
+      </div>
+      <div class="space-y-3 text-xs text-slate-300 max-h-80 overflow-y-auto">
+        <div class="bg-slate-900/90 border border-sky-500/30 rounded-xl p-3">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="bg-sky-500 text-slate-950 font-extrabold px-2 py-0.5 rounded text-[10px]">NEW</span>
+            <span class="font-bold text-white">v1.0（2026/11/22 初版リリース）</span>
+          </div>
+          <ul class="list-disc pl-4 space-y-1 text-slate-300">
+            <li>企画タイプ別4種プリセット（自作アプリ・音楽ツール・現場DX・作業用BGM）実装</li>
+            <li>検索SEO対策「冒頭300文字リアルタイムメーター＆キーワードカバー率判定」搭載</li>
+            <li>Google Vids等での読み間違いを防ぐ日本語最適化済み長尺台本ビルダー実装</li>
+            <li>Canva縦型切り抜き用のYouTubeショート3本量産レシピ（上下黒帯テロップ・固定コメント付）同時生成</li>
+            <li>複数企画のブラウザ内ストック保存（LocalStorage）およびMarkdown一括書き出し対応</li>
+          </ul>
+        </div>
+      </div>
+      <div class="text-right">
+        <button onclick="closeReleaseModal()" class="btn-primary text-xs px-4 py-2">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Presets Data
+    const PRESETS = {
+      app_dev: {
+        titleTopic: '登録不要・完全無料の専用Webアプリ',
+        pain: '既存の汎用ツールや紙の作業が面倒で、自分の現場や用途にぴったり合う道具が見つからない',
+        story: '最初はAIに作らせたら一般的な画面が出てきたが、何度もダメ出しをして自分の指と目線に合う専用UIに全面作り直した。インストール不要・維持費0円のブラウザ完結設計。',
+        keywords: '個人開発, AI活用, 無料アプリ, 業務効率化, ノーコード',
+        appUrl: 'https://ユーザー名.github.io/my-app/',
+        noteUrl: 'https://note.com/',
+        channel: 'River130',
+        duration: 'short_long',
+        disclaimer: true,
+        trademark: '関連サービス・メーカー様'
+      },
+      music_tool: {
+        titleTopic: 'インスタコード専用 作曲アシスト・スタジオ',
+        pain: 'オリジナル曲を作りたいけれど音楽理論やコード進行に迷う、実機が手元にない外出先でも感覚的に試奏したい',
+        story: '最初は普通のピアノ鍵盤アプリが出てきたが、全部消して実機と同じ「1〜6の数字ボタン」と「縦6本の横長弦パッド」に全面作り直した。ドラム伴奏ループや空間リバーブもブラウザだけで鳴る。',
+        keywords: 'インスタコード, 作曲, InstaChord, DTM, 個人開発',
+        appUrl: 'https://ユーザー名.github.io/instachord-studio/',
+        noteUrl: 'https://note.com/',
+        channel: 'River130',
+        duration: 'short_long',
+        disclaimer: true,
+        trademark: 'インスタコード株式会社様'
+      },
+      delivery_dx: {
+        titleTopic: '軽貨物ドライバー専用 ワンタップ業務記録＆LINE日報アプリ',
+        pain: '揺れる車内や手袋着用時の入力ミス、元請けごとに違うLINE日報の作成、月末の確定申告集計が大変すぎる',
+        story: '現場で片手で確実に押せる大型打刻ボタンと、よく行く拠点のワンタップチップに徹底的にこだわった。スプレッドシートとAppSheetに無料連携して確定申告まで自動集計できる。',
+        keywords: '軽貨物, 業務効率化, 日報アプリ, 確定申告, 個人開発',
+        appUrl: 'https://ユーザー名.github.io/delivery-log/',
+        noteUrl: 'https://note.com/',
+        channel: 'River130',
+        duration: 'mid_long',
+        disclaimer: true,
+        trademark: '各種配送会社・荷主様'
+      },
+      bgm_loop: {
+        titleTopic: '深夜の集中力を研ぎ澄ます重厚ダーク・作業用BGM＆朗読',
+        pain: '夜の作業や勉強で集中力が続かない、派手な広告や急にうるさくなるBGMで思考が途切れてしまう',
+        story: '一定のテンポを保つオリジナル重低音BGMと淡々とした朗読で作業の邪魔をせず没入感を維持。エンディングの強い声かけを削ぎ落とし、次の動画へシームレスに自動再生されるループ設計。',
+        keywords: '作業用BGM, 集中力, ダークファンタジー, 朗読, 睡眠導入',
+        appUrl: '',
+        noteUrl: 'https://note.com/',
+        channel: 'マーシャルヒル / River130',
+        duration: 'bgm_1h',
+        disclaimer: false,
+        trademark: ''
+      }
+    };
+
+    const STORAGE_KEY_DRAFT = 'river130_yt_builder_draft_v1';
+    const STORAGE_KEY_SAVED = 'river130_yt_builder_saved_v1';
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedDraft = localStorage.getItem(STORAGE_KEY_DRAFT);
+      if (savedDraft) {
+        try {
+          const data = JSON.parse(savedDraft);
+          setFormValues(data);
+          updatePresetChipHighlight(data.activePreset || '');
+        } catch (e) {
+          applyPreset('music_tool', false);
+        }
+      } else {
+        applyPreset('music_tool', false);
+      }
+      renderSavedList();
+      generateAll();
+    });
+
+    // Scroll Monitor (Mobile & PWA compatible)
+    function handleScroll() {
+      const scrollY = Math.max(
+        window.scrollY || 0,
+        document.documentElement.scrollTop || 0,
+        document.body.scrollTop || 0
+      );
+      const btn = document.getElementById('scrollTopBtn');
+      if (btn) {
+        btn.style.display = scrollY > 80 ? 'flex' : 'none';
+      }
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('touchmove', handleScroll, { passive: true });
+
+    // Apply Preset
+    function applyPreset(key, showNotify = true) {
+      const p = PRESETS[key];
+      if (!p) return;
+      setFormValues({ ...p, activePreset: key });
+      updatePresetChipHighlight(key);
+      generateAll();
+      if (showNotify) {
+        showToast('⚡ プリセットを読み込みました');
+      }
+    }
+
+    function updatePresetChipHighlight(activeKey) {
+      document.querySelectorAll('.preset-chip').forEach(el => el.classList.remove('active'));
+      if (activeKey) {
+        const target = document.getElementById('preset-' + activeKey);
+        if (target) target.classList.add('active');
+      }
+    }
+
+    function setFormValues(d) {
+      document.getElementById('inTitleTopic').value = d.titleTopic || '';
+      document.getElementById('inPain').value = d.pain || '';
+      document.getElementById('inStory').value = d.story || '';
+      document.getElementById('inKeywords').value = d.keywords || '';
+      document.getElementById('inAppUrl').value = d.appUrl || '';
+      document.getElementById('inNoteUrl').value = d.noteUrl || '';
+      document.getElementById('inChannel').value = d.channel || 'River130';
+      document.getElementById('inDuration').value = d.duration || 'short_long';
+      document.getElementById('chkDisclaimer').checked = Boolean(d.disclaimer);
+      document.getElementById('inTrademarkName').value = d.trademark || '';
+    }
+
+    function getFormValues() {
+      const activeChip = document.querySelector('.preset-chip.active');
+      const activePreset = activeChip ? activeChip.id.replace('preset-', '') : '';
+      return {
+        titleTopic: document.getElementById('inTitleTopic').value.trim() || '自作Webアプリ',
+        pain: document.getElementById('inPain').value.trim() || '日々の作業や創作の手間を減らしたい',
+        story: document.getElementById('inStory').value.trim() || 'AIと対話しながら自分の現場・用途にぴったり合う専用画面に作り直した',
+        keywords: document.getElementById('inKeywords').value.trim() || '個人開発, AI活用, 無料アプリ',
+        appUrl: document.getElementById('inAppUrl').value.trim(),
+        noteUrl: document.getElementById('inNoteUrl').value.trim(),
+        channel: document.getElementById('inChannel').value.trim() || 'River130',
+        duration: document.getElementById('inDuration').value,
+        disclaimer: document.getElementById('chkDisclaimer').checked,
+        trademark: document.getElementById('inTrademarkName').value.trim() || 'メーカー・関連企業様',
+        activePreset
+      };
+    }
+
+    function clearAllFields() {
+      setFormValues({
+        titleTopic: '',
+        pain: '',
+        story: '',
+        keywords: '',
+        appUrl: '',
+        noteUrl: '',
+        channel: 'River130',
+        duration: 'short_long',
+        disclaimer: true,
+        trademark: ''
+      });
+      updatePresetChipHighlight('');
+      generateAll();
+      showToast('🗑️ 入力欄をクリアしました');
+    }
+
+    // Main Generation Engine
+    function generateAll() {
+      const data = getFormValues();
+      localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(data));
+
+      // Toggle disclaimer target input visibility
+      const wrap = document.getElementById('disclaimerTargetWrap');
+      wrap.style.display = data.disclaimer ? 'block' : 'none';
+
+      const kwList = data.keywords
+        .split(/[,、\s]+/)
+        .map(k => k.trim())
+        .filter(Boolean);
+      const kw1 = kwList[0] || '個人開発';
+      const kw2 = kwList[1] || 'AI活用';
+      const kw3 = kwList[2] || '無料ツール';
+      const hashtags = kwList.slice(0, 5).map(k => '#' + k.replace(/^#/, '')).join(' ');
+
+      const isBgm = data.duration === 'bgm_1h';
+
+      // 1. Generate 3 Title Options
+      const titles = isBgm
+        ? [
+            {
+              tag: '🎯 検索SEO・王道型',
+              text: `【作業用BGM】${data.titleTopic}｜集中力と没入感を高める重厚サウンド・1時間連続再生`
+            },
+            {
+              tag: '🌙 悩み解決フック型',
+              text: `深夜の作業・勉強が驚くほど捗る『${data.titleTopic}』広告の邪魔なしで没入ループ`
+            },
+            {
+              tag: '🎧 世界観・ブランド型',
+              text: `${data.titleTopic}【${kw1}・${kw2}】静寂と余韻のサウンドスケープ｜${data.channel}`
+            }
+          ]
+        : [
+            {
+              tag: '🔥 クリック率No.1（開発裏話×無料配布）',
+              text: `【完全無料・登録不要】${data.titleTopic}を自作した全記録！AIと対話して現場仕様に作り直した話`
+            },
+            {
+              tag: '🎯 検索SEO特化型（悩み直撃）',
+              text: `${kw1}の悩みを一撃解決！スマホ・PCで今すぐ使える『${data.titleTopic}』の作り方＆使い方`
+            },
+            {
+              tag: '💡 好奇心フック型（ビフォー・アフター）',
+              text: `プログラミング知識ゼロから『${data.titleTopic}』を自作した結果…【${kw1}・${kw2}】`
+            }
+          ];
+
+      const titleListEl = document.getElementById('titleList');
+      titleListEl.innerHTML = titles.map((t, idx) => `
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <span class="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 mb-1">${t.tag}</span>
+            <p id="titleOpt${idx}" class="text-xs sm:text-sm font-bold text-white leading-snug">${escapeHtml(t.text)}</p>
+          </div>
+          <button onclick="copyElementText('titleOpt${idx}')" class="btn-copy shrink-0 self-end sm:self-center">
+            📋 コピー
+          </button>
+        </div>
+      `).join('');
+
+      // 2. Generate Description (First 300 chars optimized for SEO)
+      const appUrlLine = data.appUrl ? `▼ 今すぐ使える無料アプリURL（登録不要・維持費0円）\n${data.appUrl}\n\n` : '';
+      const noteUrlLine = data.noteUrl ? `▼ 詳しい使い方・開発の裏話・構築ガイド（note記事）\n${data.noteUrl}\n\n` : '';
+
+      let intro300 = '';
+      if (isBgm) {
+        intro300 = `【${kw1}・${kw2}】${data.titleTopic}。${data.pain}という方のために制作した、作業の邪魔をせず集中力と没入感を維持するオリジナルサウンド＆朗読ループ動画です。${kwList.join('・')}を探している方におすすめ。エンディングの強い声かけを省き、次の動画へシームレスに自動再生されます。`;
+      } else {
+        intro300 = `【${kw1}・${kw2}・${kw3}】「${data.pain}」という悩みを解決するため、ブラウザだけで登録不要・完全無料で使える『${data.titleTopic}』を自作しました！${data.story} スマホのホーム画面に追加してアプリのように使えます。`;
+      }
+
+      // Build Timestamps
+      let timestamps = '';
+      if (data.duration === 'short_long') {
+        timestamps = [
+          `0:00 オープニング：${data.titleTopic}の実演ハイライト`,
+          `0:25 なぜ自作したのか？（${kw1}の現場・当事者の悩み）`,
+          `0:45 開発の裏話：AIの初期案を全消しして専用UIに作り直した理由`,
+          `1:35 使い方実演①：ワンタップ操作＆メイン機能デモ（${kw2}）`,
+          `2:20 使い方実演②：こだわり機能とスマホ・PC活用術`,
+          `3:10 まとめ：登録不要・完全無料URLと今後のアップデート案内`
+        ].join('\n');
+      } else if (data.duration === 'mid_long') {
+        timestamps = [
+          `0:00 オープニング：${data.titleTopic}で変わる新しいワークフロー`,
+          `0:50 現場のリアルな課題：${data.pain}`,
+          `1:45 AIとの対話プロセス：プロトタイプ誕生から泥臭いUI改良まで`,
+          `3:00 実機操作デモ：片手ワンタップ入力と時短テクニック（${kw1}）`,
+          `4:30 データ連携・応用活用術（${kw2}・${kw3}）`,
+          `5:30 無料公開の案内＆概要欄・noteリンクのお知らせ`
+        ].join('\n');
+      } else {
+        timestamps = [
+          `0:00 導入：シグネチャー音＆没入サウンドの始まり（${kw1}）`,
+          `0:45 第1章：静かなる集中と物語の導入（${kw2}）`,
+          `15:00 第2章：深い思考へ導く重厚アンビエント・パート`,
+          `30:00 第3章：深夜の作業を支える一定リズムのサウンドスケープ`,
+          `45:00 第4章：終盤に向けた静寂と余韻のフェードアウト`,
+          `59:50 無音インターバル（次の作業用BGMへ自動再生ループ）`
+        ].join('\n');
+      }
+
+      const disclaimerBlock = data.disclaimer
+        ? `\n--------------------------------------------------\n【免責事項・表記】\n※本ツールは個人制作の非公式サポートツールであり、${data.trademark}とは一切関係ありません。\n※入力データはお使いの端末内（ブラウザのLocalStorage）にのみ保存されます。本ツールの利用により生じた損害等について制作者は責任を負いかねますので、ご自身の責任においてご活用ください。\n--------------------------------------------------`
+        : '';
+
+      const fullDescription = `${intro300}
+
+${appUrlLine}${noteUrlLine}━━━━━━━━━━━━━━━━━━━━
+📌 目次（タイムスタンプ）
+━━━━━━━━━━━━━━━━━━━━
+${timestamps}
+
+━━━━━━━━━━━━━━━━━━━━
+📺 関連・チャンネル情報
+━━━━━━━━━━━━━━━━━━━━
+運営：${data.channel}
+${hashtags} ${isBgm ? '' : '#個人開発 #AI活用'}${disclaimerBlock}`;
+
+      document.getElementById('outDescription').textContent = fullDescription;
+
+      // Update 300-char SEO Meter
+      const actualIntro = fullDescription.slice(0, 300);
+      const introLen = Math.min(intro300.length, 300);
+      const countEl = document.getElementById('introCharCount');
+      const barEl = document.getElementById('introProgressBar');
+      const previewEl = document.getElementById('introPreviewText');
+
+      countEl.textContent = `${intro300.length}文字（冒頭300文字内に重要要素を凝縮）`;
+      barEl.style.width = `${Math.min(100, Math.round((intro300.length / 300) * 100))}%`;
+      previewEl.textContent = `冒頭300文字プレビュー：「${actualIntro.replace(/\n/g, ' ')}…」`;
+
+      // Check keyword coverage in first 300 chars
+      const matchedCount = kwList.filter(k => actualIntro.includes(k)).length;
+      const coverage = kwList.length > 0 ? Math.round((matchedCount / kwList.length) * 100) : 100;
+      const kwBadge = document.getElementById('kwMatchBadge');
+      kwBadge.textContent = `冒頭300字KW一致率: ${coverage}% (${matchedCount}/${kwList.length})`;
+      kwBadge.className = coverage >= 80
+        ? 'text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300'
+        : 'text-[11px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300';
+
+      // 3. Generate Pinned Comment
+      const pinnedComment = isBgm
+        ? `作業や勉強のお供にご視聴ありがとうございます！🎧\nこの動画は作業の邪魔をしないよう、終了後に次のBGMへ自動で切り替わるループ仕様になっています。\n\n「こんな雰囲気のBGMも欲しい！」「深夜の〇〇作業で聴いています」など、ぜひコメント欄で教えてください👇`
+        : `▼ 今すぐスマホ・PCで使える無料アプリURLはこちら（登録不要・維持費0円）\n${data.appUrl || '【ここに公開URLを貼る】'}\n${data.noteUrl ? `\n▼ 詳しい使い方・開発裏話note記事\n${data.noteUrl}\n` : ''}\n実際に触ってみた感想や「こんな機能も追加してほしい！」というリクエストがあれば、ぜひコメント欄で教えてください！次のアップデートの参考にさせていただきます🙌`;
+
+      document.getElementById('outPinnedComment').textContent = pinnedComment;
+
+      // 4. Generate Long Video Script (Optimized for Google Vids TTS)
+      const longScript = isBgm
+        ? `【作業用BGM・朗読動画 構成＆収録ガイド】
+
+■ 0:00〜0:15 導入（ソニック・ブランディング）
+・画面：ダークトーンの背景にチャンネルロゴを極低輝度で表示
+・音声：統一のシグネチャー音（低いチェロの単音など）から静かに重低音BGMへフェードイン
+
+■ 0:15〜 本編（一定テンポの朗読＆重低音BGMループ）
+・ナレーション方針：感情を込めすぎず、一定の落ち着いたテンポで言葉を紡ぐ
+・テーマ：「${data.titleTopic}」
+・ターゲットの悩み：「${data.pain}」に寄り添う静かな導入から本編へ
+
+■ エンディング（摩擦ゼロの引き算設計）
+・音声：「チャンネル登録」などの強い声かけは入れず、BGMを数秒かけて静かにフェードアウト
+・画面：完全なブラックアウトを避け、極低輝度のロゴ表示＋数秒間の完全な無音インターバルを挟んで再生リストの次動画へ自動遷移`
+        : `【YouTube長尺動画 構成＆Google Vids読み上げ台本（約3分半〜4分）】
+※AI音声が記号や英語を読み間違えないよう、ナレーション文はすべて自然な日本語表記に調整しています。
+
+━━━━━━━━━━━━━━━━━━━━
+① オープニング・結論フック（0:00〜0:35）
+━━━━━━━━━━━━━━━━━━━━
+【映像】サムネイル表示（2秒）➔ 実際のアプリ画面で一番気持ちよく動く操作シーンの画面録画
+【テロップ】登録不要・完全無料！『${data.titleTopic}』自作しました！
+【ナレーション】
+「${data.pain}。そんな悩みを一撃で解決するために、スマホでもパソコンでも登録不要、完全無料で今すぐ使える『${data.titleTopic}』を自作しました。インストールも維持費も一切かかりません。今日はこのアプリがどうやって出来上がったのか、実際の操作画面をお見せしながらご紹介します。」
+
+━━━━━━━━━━━━━━━━━━━━
+② 共感・開発の裏話（0:35〜1:35）
+━━━━━━━━━━━━━━━━━━━━
+【映像】開発過程のチャット画面や、改修前後の比較イメージ
+【テロップ】最初は普通の汎用画面だった… ➔ 現場・当事者仕様に全面作り直し！
+【ナレーション】
+「実はこのアプリ、最初はまったく違う見た目でした。プログラミング知識ゼロの状態からエーアイと対話して作らせたところ、最初はどこにでもある普通の汎用的な画面が出てきたんです。でも、本当に欲しかったのはそういうものではありませんでした。そこで何度もダメ出しをして、余計な機能を削ぎ落とし、${data.story}という形に全面的に作り直しました。」
+
+━━━━━━━━━━━━━━━━━━━━
+③ 実演パート①：メイン機能の使い方（1:35〜2:20）
+━━━━━━━━━━━━━━━━━━━━
+【映像】アプリの画面録画（基本操作・ワンタップ入力・自動生成などの実演）
+【テロップ】ステップ1：迷わず直感操作！ワンタップで完結
+【ナレーション】
+「使い方はとてもシンプルです。画面を開いたら、難しい設定なしで直感的に操作できます。ボタンをタップするだけで必要な処理が自動で進み、スマホの小さな画面でも片手で迷わず使えるようにボタンの大きさや配置を工夫しました。」
+
+━━━━━━━━━━━━━━━━━━━━
+④ 実演パート②：こだわり機能と活用術（2:20〜3:10）
+━━━━━━━━━━━━━━━━━━━━
+【映像】アプリの画面録画（応用機能・保存や出力・スマホホーム画面追加の様子）
+【テロップ】ステップ2：ブラウザ完結＆ホーム画面追加で本物のアプリ化！
+【ナレーション】
+「さらにこだわったのが、実用性と手軽さの両立です。データはすべてお使いのブラウザ内に自動で保存されるため、ログインやアカウント登録の手間はゼロ。スマートフォンのブラウザからホーム画面に追加しておけば、普段使っているアプリとまったく同じ感覚でワンタップで起動できます。」
+
+━━━━━━━━━━━━━━━━━━━━
+⑤ クロージング・無料配布案内（3:10〜3:45）
+━━━━━━━━━━━━━━━━━━━━
+【映像】アプリ全体ビュー ➔ 概要欄への誘導矢印 ➔ ${data.channel} ロゴ
+【テロップ】無料アプリURL＆詳しい解説は概要欄・ノートへ！
+【ナレーション】
+「今回ご紹介した『${data.titleTopic}』は、概要欄と固定コメントのリンクから誰でも完全無料でそのままお使いいただけます。詳しい使い方や開発の裏話はノート記事にもまとめていますので、ぜひあわせてチェックしてみてください。使ってみた感想や、こんな機能が欲しいというリクエストもコメント欄でお待ちしています！」`;
+
+      document.getElementById('outLongScript').textContent = longScript;
+
+      // 5. Generate 3 YouTube Shorts Recipes
+      const shortsData = [
+        {
+          num: '第1弾（視覚フック・実演切り抜き）',
+          clipGuide: '長尺動画の「0:03〜0:35」または「1:35〜2:10（一番画面が動いて気持ちいい実演シーン）」を切り抜き（約25〜35秒）',
+          topTelop: `【完全無料】${data.titleTopic}を自作した件`,
+          bottomTelop: '登録不要・無料URLは関連動画＆コメント欄へ👇',
+          ytTitle: `スマホ画面が専用ツールに進化した件！${data.titleTopic}を自作した【完全無料】 #shorts #${kw1} #${kw2}`,
+          ytDesc: `${data.pain}を解決するため、ブラウザだけで登録不要・完全無料で使える『${data.titleTopic}』を自作しました！\nインストール不要でスマホでもPCでも今すぐ使えます👇\n\n▼ 無料アプリURL＆詳しい解説は関連動画（本編）の概要欄へ！\n\n#shorts ${hashtags}`,
+          pinText: `▼ 今すぐスマホ・PCで使える無料アプリURLはこちら（登録不要）\n${data.appUrl || '【ここに公開URLを貼る】'}\n\nぜひ触ってみてください🙌`
+        },
+        {
+          num: '第2弾（開発裏話・ビフォーアフター切り抜き）',
+          clipGuide: '長尺動画の「0:35〜1:15（最初は普通の汎用画面だったのを全消しして作り直した裏話パート）」を切り抜き（約35秒）',
+          topTelop: 'AIにアプリ作らせたら最初は普通の画面だった…全消しして作り直した話',
+          bottomTelop: '作り直した無料アプリURLは関連動画＆コメント欄へ👇',
+          ytTitle: `AIにアプリ作らせたら最初は普通の画面だった…全消しして専用仕様に作り直した話 #shorts #${kw1} #AI活用`,
+          ytDesc: `プログラミング知識ゼロからAIと対話して『${data.titleTopic}』を自作した開発裏話です！\n汎用的な見た目じゃなく、現場・当事者が本当に使いやすいUIにこだわりました。\n\n▼ 無料アプリURL＆全記録は関連動画（本編）へ！\n\n#shorts ${hashtags}`,
+          pinText: `▼ 作り直した「${data.titleTopic}」無料URLはこちら\n${data.appUrl || '【ここに公開URLを貼る】'}`
+        },
+        {
+          num: '第3弾（時短・メリット直撃切り抜き）',
+          clipGuide: '長尺動画の「2:20〜3:00（ワンタップで完結する便利機能・スマホホーム画面化のパート）」を切り抜き（約30秒）',
+          topTelop: `${kw1}の手間が消える！登録不要・維持費0円の神ツール自作した`,
+          bottomTelop: '今すぐ使えるURLは関連動画＆コメント欄へ👇',
+          ytTitle: `${kw1}の面倒な作業が一瞬で終わる！登録不要・完全無料の専用ツール自作した #shorts #${kw1} #${kw3}`,
+          ytDesc: `「${data.pain}」を一撃で解消するブラウザ完結型ツールです！\nログイン不要・スマホのホーム画面に追加して1タップで使えます。\n\n▼ 無料アプリURLは関連動画（本編）＆コメント欄へ👇\n\n#shorts ${hashtags}`,
+          pinText: `▼ 今すぐ使える無料URLはこちら（登録不要・維持費0円）\n${data.appUrl || '【ここに公開URLを貼る】'}`
+        }
+      ];
+
+      const shortsContainer = document.getElementById('shortsContainer');
+      shortsContainer.innerHTML = shortsData.map((s, i) => `
+        <div class="card p-4 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-sm font-extrabold text-amber-400">📱 ${s.num}</h4>
+            <span class="text-[11px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded">縦型 1080×1920px</span>
+          </div>
+          <p class="text-xs text-slate-300 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+            <strong class="text-sky-400">✂️ 切り抜き区間：</strong>${escapeHtml(s.clipGuide)}
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-amber-300">上部黒帯テロップ（黄色背景推奨）</span>
+                <button onclick="copyTextDirect('${escapeJsString(s.topTelop)}')" class="text-[11px] text-sky-400 underline">コピー</button>
+              </div>
+              <p class="text-white font-bold">${escapeHtml(s.topTelop)}</p>
+            </div>
+            <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-slate-300">下部黒帯テロップ（白太字推奨）</span>
+                <button onclick="copyTextDirect('${escapeJsString(s.bottomTelop)}')" class="text-[11px] text-sky-400 underline">コピー</button>
+              </div>
+              <p class="text-white font-bold">${escapeHtml(s.bottomTelop)}</p>
+            </div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs font-bold text-slate-300">ショート投稿タイトル</span>
+              <button onclick="copyElementText('shTitle${i}')" class="btn-copy py-1 px-2 text-[11px]">📋 コピー</button>
+            </div>
+            <div id="shTitle${i}" class="output-box py-2 text-xs">${escapeHtml(s.ytTitle)}</div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-slate-300">ショート説明文</span>
+                <button onclick="copyElementText('shDesc${i}')" class="btn-copy py-1 px-2 text-[11px]">📋 コピー</button>
+              </div>
+              <div id="shDesc${i}" class="output-box py-2 text-xs max-h-36 overflow-y-auto">${escapeHtml(s.ytDesc)}</div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-bold text-slate-300">ショート固定コメント</span>
+                <button onclick="copyElementText('shPin${i}')" class="btn-copy py-1 px-2 text-[11px]">📋 コピー</button>
+              </div>
+              <div id="shPin${i}" class="output-box py-2 text-xs max-h-36 overflow-y-auto">${escapeHtml(s.pinText)}</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Tab Switching
+    function switchTab(tabName) {
+      ['seo', 'script', 'shorts', 'history'].forEach(t => {
+        document.getElementById('tab-' + t).classList.remove('active');
+        document.getElementById('panel-' + t).classList.add('hidden');
+      });
+      document.getElementById('tab-' + tabName).classList.add('active');
+      document.getElementById('panel-' + tabName).classList.remove('hidden');
+    }
+
+    // Save & Load Projects
+    function saveCurrentProject() {
+      const data = getFormValues();
+      const saved = getSavedProjects();
+      const newItem = {
+        id: Date.now(),
+        savedAt: new Date().toLocaleString('ja-JP', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+        data
+      };
+      saved.unshift(newItem);
+      localStorage.setItem(STORAGE_KEY_SAVED, JSON.stringify(saved.slice(0, 30)));
+      renderSavedList();
+      showToast('💾 企画ストックに保存しました！');
+    }
+
+    function getSavedProjects() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY_SAVED) || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function renderSavedList() {
+      const saved = getSavedProjects();
+      document.getElementById('savedCount').textContent = saved.length;
+      const container = document.getElementById('savedListContainer');
+      if (saved.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 py-6 text-center">まだ保存された企画はありません。上部の「💾 保存」ボタンを押すとここにストックされます。</p>`;
+        return;
+      }
+      container.innerHTML = saved.map(item => `
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="text-[10px] font-mono text-sky-400">${escapeHtml(item.savedAt)}</span>
+              <span class="text-xs font-bold text-white">${escapeHtml(item.data.titleTopic)}</span>
+            </div>
+            <p class="text-[11px] text-slate-400 line-clamp-1">${escapeHtml(item.data.keywords)}</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            <button onclick="loadSavedProject(${item.id})" class="btn-copy py-1 px-2.5 text-xs">
+              📂 読み込む
+            </button>
+            <button onclick="deleteSavedProject(${item.id})" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25">
+              🗑️ 削除
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function loadSavedProject(id) {
+      const saved = getSavedProjects();
+      const target = saved.find(i => i.id === id);
+      if (!target) return;
+      setFormValues(target.data);
+      updatePresetChipHighlight(target.data.activePreset || '');
+      generateAll();
+      switchTab('seo');
+      showToast('📂 保存済み企画を読み込みました');
+    }
+
+    function deleteSavedProject(id) {
+      const saved = getSavedProjects().filter(i => i.id !== id);
+      localStorage.setItem(STORAGE_KEY_SAVED, JSON.stringify(saved));
+      renderSavedList();
+      showToast('🗑️ 削除しました');
+    }
+
+    // Export Markdown File
+    function exportMarkdownFile() {
+      const data = getFormValues();
+      const title0 = document.getElementById('titleOpt0')?.textContent || '';
+      const desc = document.getElementById('outDescription').textContent;
+      const pin = document.getElementById('outPinnedComment').textContent;
+      const script = document.getElementById('outLongScript').textContent;
+
+      const mdContent = `# YouTube＆ショート制作パッケージ：${data.titleTopic}
+
+## 1. メインタイトル案
+${title0}
+
+## 2. 検索SEO最適化済み 概要欄
+\`\`\`text
+${desc}
+\`\`\`
+
+## 3. 固定コメント案
+\`\`\`text
+${pin}
+\`\`\`
+
+## 4. 長尺動画 構成＆読み上げ台本
+${script}
+`;
+      const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `youtube_package_${Date.now()}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('⬇️ Markdownファイルをダウンロードしました');
+    }
+
+    // Clipboard Copy Helpers (with fallback)
+    function copyElementText(elementId) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      copyTextDirect(el.textContent);
+    }
+
+    function copyTextDirect(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('✅ コピーしました！');
+        }).catch(() => {
+          fallbackCopy(text);
+        });
+      } else {
+        fallbackCopy(text);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('✅ コピーしました！');
+      } catch (e) {
+        showToast('⚠️ コピーに失敗しました');
+      }
+      document.body.removeChild(ta);
+    }
+
+    // Toast Notification
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2200);
+    }
+
+    // Release Notes Modal
+    function openReleaseModal() {
+      const m = document.getElementById('releaseModal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+    function closeReleaseModal() {
+      const m = document.getElementById('releaseModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    // HTML Escape
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+    function escapeJsString(str) {
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+    }
+  </script>
+</body>
+</html>
